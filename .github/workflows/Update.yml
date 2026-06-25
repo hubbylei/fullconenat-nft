@@ -1,0 +1,40 @@
+name: Update
+env:
+  REPO_URL: https://github.com/chasey-dev/immortalwrt-mt798x-rebase
+  REPO_BRANCH: 25.12
+  TZ: Asia/Shanghai
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+jobs:
+  Update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Initialization environment
+      run: sudo timedatectl set-timezone "$TZ"
+
+    - name: Get source code
+      run: |
+        git clone --depth 1 $REPO_URL -b $REPO_BRANCH /tmp/imm
+        rm -rf *
+        cp -rf /tmp/imm/package/network/utils/fullconenat-nft/* ./
+
+    - name: Creat Message
+      id: msg
+      run: echo "commit_message=Update $(date +"%Y-%m-%d %H:%M:%S")" >> "$GITHUB_OUTPUT"
+ 
+    - name: Apply Changes
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+         commit_message: ${{ steps.msg.outputs.commit_message }}
+         branch: main
+
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        retain_days: 0
+        keep_minimum_runs: 5
